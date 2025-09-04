@@ -10,6 +10,7 @@ export default function Header({ subtitle = 'Manual scheduling' }) {
           <a href="/female" className="text-indigo-700 hover:underline">Female</a>
           <a href="/male" className="text-indigo-700 hover:underline">Male</a>
           <a href="#history" className="text-indigo-700 hover:underline">History</a>
+          <a href="/excel" className="text-indigo-700 hover:underline">Excel</a>
         </nav>
       </div>
     </header>

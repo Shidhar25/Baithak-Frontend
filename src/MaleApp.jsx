@@ -22,6 +22,8 @@ function MaleApp() {
   const [loading, setLoading] = useState(false)
   const nextWeekMin = nextWeekStartInputValue()
   const nextWeekMax = nextWeekEndInputValue()
+  const [allPersonsForHistory, setAllPersonsForHistory] = useState([])
+  const [allPlacesForHistory, setAllPlacesForHistory] = useState([])
 
   const derivedDayLabel = useMemo(() => {
     if (!dateValue) return ''
@@ -40,13 +42,26 @@ function MaleApp() {
     async function boot() {
       setLoading(true)
       try {
-        const [males, malePlaces, ov] = await Promise.all([
+        const [males, malePlaces, females, femalePlaces, ov] = await Promise.all([
           fetchJSON(API.males),
           fetchJSON(API.malePlaces),
+          fetchJSON(API.females),
+          fetchJSON(API.femalePlaces),
           fetchJSON(API.overview),
         ])
         setPersons(Array.isArray(males) ? males.filter(p => p.gender === 'MALE') : [])
         setPlaces(Array.isArray(malePlaces) ? malePlaces : [])
+        const onlyFemales = Array.isArray(females) ? females.filter(p => p.gender === 'FEMALE') : []
+        const allPersons = [
+          ...(Array.isArray(males) ? males : []),
+          ...onlyFemales,
+        ]
+        const allPlaces = [
+          ...(Array.isArray(malePlaces) ? malePlaces : []),
+          ...(Array.isArray(femalePlaces) ? femalePlaces : []),
+        ]
+        setAllPersonsForHistory(allPersons)
+        setAllPlacesForHistory(allPlaces)
         setOverview(Array.isArray(ov) ? ov : [])
       } catch (e) {
         showAlert('error', `Failed to load initial data: ${e.message}`)
@@ -266,7 +281,7 @@ function MaleApp() {
 
         {/* Advanced History Section */}
         <div id="history" className="mt-8">
-          <AdvancedHistory persons={persons} places={places} />
+          <AdvancedHistory persons={allPersonsForHistory} places={allPlacesForHistory} />
         </div>
 
         {loading && (
