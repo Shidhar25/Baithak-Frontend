@@ -148,6 +148,7 @@ function App() {
             />
             <HistoryTable
               rows={historyRows}
+              persons={persons}
               dateMin={nextWeekMin}
               dateMax={nextWeekMax}
               onEditDate={async (assignmentId, date) => {
@@ -159,6 +160,22 @@ function App() {
                   showAlert('success', 'Assignment date updated.')
                 } catch (e) {
                   showAlert('error', `Failed to update: ${e.message}`)
+                }
+              }}
+              onEditPerson={async (assignmentId, personId) => {
+                try {
+                  const resp = await fetchJSON(API.updateAssignmentPerson(assignmentId, personId), { method: 'PUT' })
+                  await loadHistory(selectedPerson.personId)
+                  const ov = await fetchJSON(API.overview)
+                  setOverview(Array.isArray(ov) ? ov.filter(p => p && p.timeSlot === 'EARLY_MORNING') : [])
+                  if (resp && typeof resp === 'object') {
+                    const msg = `Updated assignment ${resp.assignmentId} → ${resp.personName} on ${resp.meetingDate} (${resp.meetingDay}) at ${resp.placeName}`
+                    showAlert('success', msg)
+                  } else {
+                    showAlert('success', 'Assignment person updated.')
+                  }
+                } catch (e) {
+                  showAlert('error', `Failed to update person: ${e.message}`)
                 }
               }}
             />

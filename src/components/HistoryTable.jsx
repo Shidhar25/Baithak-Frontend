@@ -1,6 +1,6 @@
 import { formatIsoDate } from '../api';
 
-export default function HistoryTable({ rows, onEditDate, dateMin, dateMax }) {
+export default function HistoryTable({ rows, onEditDate, onEditPerson, persons = [], dateMin, dateMax }) {
   const hasRows = Array.isArray(rows) && rows.length > 0;
   const ordered = hasRows ? [...rows].reverse() : [];
   return (
@@ -14,13 +14,14 @@ export default function HistoryTable({ rows, onEditDate, dateMin, dateMax }) {
               <th className="py-2 px-4 text-left">Day</th>
               <th className="py-2 px-4 text-left">Place</th>
               <th className="py-2 px-4 text-left">Time Slot</th>
-              <th className="py-2 px-4 text-left">Edit</th>
+              <th className="py-2 px-4 text-left">Edit Date</th>
+              <th className="py-2 px-4 text-left">Edit Person</th>
             </tr>
           </thead>
           <tbody>
             {!hasRows ? (
               <tr>
-                <td colSpan={5} className="py-3 text-gray-500 italic px-4">No history yet</td>
+                <td colSpan={6} className="py-3 text-gray-500 italic px-4">No history yet</td>
               </tr>
             ) : (
               ordered.map((r, idx) => (
@@ -39,6 +40,27 @@ export default function HistoryTable({ rows, onEditDate, dateMin, dateMax }) {
                         className="border rounded px-2 py-1 text-xs"
                         onChange={(e) => onEditDate && onEditDate(r.assignmentId, e.target.value)}
                       />
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
+                  </td>
+                  <td className="py-2 pr-4 px-4">
+                    {r.assignmentId ? (
+                      <select
+                        className="border rounded px-2 py-1 text-xs"
+                        defaultValue=""
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) return;
+                          onEditPerson && onEditPerson(r.assignmentId, val);
+                          e.target.value = '';
+                        }}
+                      >
+                        <option value="">Change person…</option>
+                        {(persons || []).map(p => (
+                          <option key={p.personId} value={p.personId}>{p.name}</option>
+                        ))}
+                      </select>
                     ) : (
                       <span className="text-gray-400 text-xs">—</span>
                     )}

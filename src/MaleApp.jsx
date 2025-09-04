@@ -6,6 +6,7 @@ import Alert from './components/Alert'
 import ProfileCard from './components/ProfileCard'
 import HistoryTable from './components/HistoryTable'
 import PlacesGrid from './components/PlacesGrid'
+import AdvancedHistory from './components/AdvancedHistory'
 import SelectSection from './components/SelectSection'
 
 function MaleApp() {
@@ -149,6 +150,7 @@ function MaleApp() {
             />
             <HistoryTable
               rows={historyRows}
+              persons={persons}
               dateMin={nextWeekMin}
               dateMax={nextWeekMax}
               onEditDate={async (assignmentId, date) => {
@@ -160,6 +162,22 @@ function MaleApp() {
                   showAlert('success', 'Assignment date updated.')
                 } catch (e) {
                   showAlert('error', `Failed to update: ${e.message}`)
+                }
+              }}
+              onEditPerson={async (assignmentId, personId) => {
+                try {
+                  const resp = await fetchJSON(API.updateAssignmentPerson(assignmentId, personId), { method: 'PUT' })
+                  await loadHistory(selectedPerson.personId)
+                  const ov = await fetchJSON(API.overview)
+                  setOverview(Array.isArray(ov) ? ov : [])
+                  if (resp && typeof resp === 'object') {
+                    const msg = `Updated assignment ${resp.assignmentId} → ${resp.personName} on ${resp.meetingDate} (${resp.meetingDay}) at ${resp.placeName}`
+                    showAlert('success', msg)
+                  } else {
+                    showAlert('success', 'Assignment person updated.')
+                  }
+                } catch (e) {
+                  showAlert('error', `Failed to update person: ${e.message}`)
                 }
               }}
             />
@@ -245,6 +263,11 @@ function MaleApp() {
             }
           }}
         />
+
+        {/* Advanced History Section */}
+        <div id="history" className="mt-8">
+          <AdvancedHistory persons={persons} places={places} />
+        </div>
 
         {loading && (
           <div className="fixed inset-0 bg-black/10 flex items-center justify-center pointer-events-none">
