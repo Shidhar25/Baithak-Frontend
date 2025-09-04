@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082'  ;
+export const API_BASE = import.meta.env.VITE_API_BASE || 'https://saptahikbaithak-1.onrender.com'  ;
 
 export const API = {
   females: `${API_BASE}/users/v1/all/female`,
