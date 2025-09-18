@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_BASE || 'https://saptahikbaithak-1.onrender.com'  ;
+export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8082'  ;
 
 export const API = {
   females: `${API_BASE}/users/v1/all/female`,
@@ -78,6 +78,41 @@ export function nextWeekEndInputValue() {
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
   return dateToInputValue(end);
+}
+
+// Returns true if the given input-value date (YYYY-MM-DD) falls within the current week (Mon-Sun)
+export function isInputDateInCurrentWeek(inputValue) {
+  if (!inputValue) return false;
+  const today = new Date();
+  const dayIndexMondayBased = (today.getDay() + 6) % 7; // Monday=0 ... Sunday=6
+  const currentMonday = new Date(today);
+  currentMonday.setHours(0, 0, 0, 0);
+  currentMonday.setDate(today.getDate() - dayIndexMondayBased);
+  const currentSunday = new Date(currentMonday);
+  currentSunday.setDate(currentMonday.getDate() + 6);
+
+  const d = new Date(`${inputValue}T00:00:00`);
+  d.setHours(0, 0, 0, 0);
+  return d >= currentMonday && d <= currentSunday;
+}
+
+// Returns true if the given input-value date (YYYY-MM-DD) falls within
+// last week, current week, or next week (Mon–Sun windows, inclusive)
+export function isInputDateInEditableWindow(inputValue) {
+  if (!inputValue) return false;
+  const today = new Date();
+  const dayIndexMondayBased = (today.getDay() + 6) % 7; // Monday=0 ... Sunday=6
+  const currentMonday = new Date(today);
+  currentMonday.setHours(0, 0, 0, 0);
+  currentMonday.setDate(today.getDate() - dayIndexMondayBased);
+  const lastMonday = new Date(currentMonday);
+  lastMonday.setDate(currentMonday.getDate() - 7);
+  const nextSunday = new Date(currentMonday);
+  nextSunday.setDate(currentMonday.getDate() + 13); // current Monday + 13 = end of next week (Sunday)
+
+  const d = new Date(`${inputValue}T00:00:00`);
+  d.setHours(0, 0, 0, 0);
+  return d >= lastMonday && d <= nextSunday;
 }
 
 // New helper functions for history with date ranges

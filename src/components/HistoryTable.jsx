@@ -1,4 +1,5 @@
 import { formatIsoDate } from '../api';
+import { isInputDateInCurrentWeek, isInputDateInEditableWindow } from '../api';
 
 export default function HistoryTable({ rows, onEditDate, onEditPerson, persons = [], dateMin, dateMax }) {
   const hasRows = Array.isArray(rows) && rows.length > 0;
@@ -46,21 +47,25 @@ export default function HistoryTable({ rows, onEditDate, onEditPerson, persons =
                   </td>
                   <td className="py-2 pr-4 px-4">
                     {r.assignmentId ? (
-                      <select
-                        className="border rounded px-2 py-1 text-xs"
-                        defaultValue=""
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (!val) return;
-                          onEditPerson && onEditPerson(r.assignmentId, val);
-                          e.target.value = '';
-                        }}
-                      >
-                        <option value="">Change person…</option>
-                        {(persons || []).map(p => (
-                          <option key={p.personId} value={p.personId}>{p.name}</option>
-                        ))}
-                      </select>
+                      isInputDateInEditableWindow(r.meetingDate) ? (
+                        <select
+                          className="border rounded px-2 py-1 text-xs"
+                          defaultValue=""
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (!val) return;
+                            onEditPerson && onEditPerson(r.assignmentId, val);
+                            e.target.value = '';
+                          }}
+                        >
+                          <option value="">Change person…</option>
+                          {(persons || []).map(p => (
+                            <option key={p.personId} value={p.personId}>{p.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-gray-400 text-xs">Only last/current/next week can change</span>
+                      )
                     ) : (
                       <span className="text-gray-400 text-xs">—</span>
                     )}

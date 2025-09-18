@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { weekdayFromDate } from '../api';
 
 export default function SelectSection({
   persons,
@@ -18,7 +19,14 @@ export default function SelectSection({
   dateMax,
 }) {
   const assignedIds = useMemo(() => new Set((currentHistory || []).map(h => h.placeId)), [currentHistory]);
-  const availablePlaces = useMemo(() => (places || []).filter(pl => !assignedIds.has(pl.placeId)), [places, assignedIds]);
+  const selectedWeekday = useMemo(() => (dateValue ? weekdayFromDate(dateValue) : null), [dateValue]);
+  const availablePlaces = useMemo(() => {
+    return (places || []).filter(pl => {
+      if (assignedIds.has(pl.placeId)) return false;
+      if (selectedWeekday && pl?.meetingDay && pl.meetingDay !== selectedWeekday) return false;
+      return true;
+    });
+  }, [places, assignedIds, selectedWeekday]);
 
   return (
     <section className="md:col-span-1 space-y-4">
