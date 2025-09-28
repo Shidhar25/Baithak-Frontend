@@ -139,35 +139,54 @@ export default function ExcelExport() {
   }, [history, persons, rangeStart, rangeEnd, dayDates.length]);
 
   function saveExcel() {
-    const wsData = [];
-    // Title rows same style as sample
-    wsData.push(['॥ श्री राम कृपये ॥']);
-    wsData.push(['॥ जने जन सूचने समये ॥']);
-
-    const header = ['मंडलाचे नांव - ठाणापूर'];
+    // Sheet 1: Weekly Grid (Schedule)
+    const wsGridData = [];
+    wsGridData.push(['॥ श्री राम कृपये ॥']);
+    wsGridData.push(['॥ जने जन सूचने समये ॥']);
+    const gridHeader = ['मंडलाचे नांव - ठाणापूर'];
     dayDates.forEach(d => {
       const dd = String(d.getDate());
       const label = `${weekdayNamesMr[d.getDay()]}-${dd}`;
-      header.push(label);
+      gridHeader.push(label);
     });
-    wsData.push(header);
-
+    wsGridData.push(gridHeader);
     gridRows.forEach(([name, cols]) => {
-      wsData.push([name, ...cols]);
+      wsGridData.push([name, ...cols]);
     });
-
-    // Footer totals (per day non-empty counts)
     const totals = ['एकूण'];
     for (let i = 0; i < dayDates.length; i++) {
       let c = 0;
       gridRows.forEach(([, cols]) => { if (cols[i]) c += 1; });
       totals.push(String(c));
     }
-    wsData.push(totals);
+    wsGridData.push(totals);
 
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wsGrid = XLSX.utils.aoa_to_sheet(wsGridData);
+    const gridCols = 1 + dayDates.length;
+    wsGrid['!cols'] = Array.from({ length: gridCols }, (_, idx) => ({ wch: idx === 0 ? 28 : 18 }));
+    wsGrid['!freeze'] = { xSplit: 1, ySplit: 3 };
+
+    // Sheet 2: Per-person history (व्यक्तीनिहाय इतिहास)
+    const wsPersonsData = [];
+    wsPersonsData.push(['व्यक्तीनिहाय इतिहास']);
+    wsPersonsData.push(['']);
+    personTables.forEach((table) => {
+      wsPersonsData.push(['॥ श्री राम समर्थ ॥']);
+      wsPersonsData.push(['॥ जय जय रघुवीर समर्थ ॥']);
+      wsPersonsData.push([`শ्री सदस्याचे नाव - ${table.name}`]);
+      wsPersonsData.push(['दिनांक', 'वार', 'स्त्री/पुरुष', 'श्री बैठकीचे ठिकाण', 'वेळ']);
+      table.rows.forEach(r => {
+        wsPersonsData.push([r.date, r.weekday, r.gender, r.place, r.timeSlot]);
+      });
+      wsPersonsData.push(['']);
+    });
+    const wsPersons = XLSX.utils.aoa_to_sheet(wsPersonsData);
+    wsPersons['!cols'] = Array.from({ length: 5 }, (_, idx) => ({ wch: [20, 12, 12, 28, 10][idx] || 18 }));
+
+    // Create workbook and save with two distinct sheets
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Schedule');
+    XLSX.utils.book_append_sheet(wb, wsGrid, 'Schedule');
+    XLSX.utils.book_append_sheet(wb, wsPersons, 'व्यक्तीनिहाय इतिहास');
     const startLabel = `${String(rangeStart.getDate()).padStart(2,'0')}-${rangeStart.toLocaleString('en-US',{month:'short'})}-${String(rangeStart.getFullYear()).slice(-2)}`;
     const endLabel = `${String(rangeEnd.getDate()).padStart(2,'0')}-${rangeEnd.toLocaleString('en-US',{month:'short'})}-${String(rangeEnd.getFullYear()).slice(-2)}`;
     XLSX.writeFile(wb, `baithak_excel_${startLabel}_to_${endLabel}.xlsx`);

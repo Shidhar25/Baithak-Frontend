@@ -17,6 +17,7 @@ export default function SelectSection({
   choosePlacePlaceholder = '-- choose female place --',
   dateMin,
   dateMax,
+  buttonClass = 'bg-indigo-600 hover:bg-indigo-700',
 }) {
   const assignedIds = useMemo(() => new Set((currentHistory || []).map(h => h.placeId)), [currentHistory]);
   const selectedWeekday = useMemo(() => (dateValue ? weekdayFromDate(dateValue) : null), [dateValue]);
@@ -76,7 +77,7 @@ export default function SelectSection({
 
         <button
           onClick={onAssign}
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded"
+          className={`w-full ${buttonClass} text-white font-medium px-4 py-2 rounded`}
         >
           Assign
         </button>

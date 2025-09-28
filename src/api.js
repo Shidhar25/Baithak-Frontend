@@ -154,3 +154,28 @@ export function getDefaultDateRange() {
   };
 }
 
+// Simple localStorage JSON cache with TTL
+export function getCachedJSON(key, ttlMs) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const { t, v } = JSON.parse(raw);
+    if (!t) return null;
+    if (typeof ttlMs === 'number' && ttlMs > 0) {
+      if (Date.now() - t > ttlMs) return null;
+    }
+    return v;
+  } catch (_) {
+    return null;
+  }
+}
+
+export function setCachedJSON(key, value) {
+  try {
+    const payload = JSON.stringify({ t: Date.now(), v: value });
+    localStorage.setItem(key, payload);
+  } catch (_) {
+    // ignore quota or serialization errors
+  }
+}
+

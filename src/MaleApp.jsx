@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
-import { API, fetchJSON, todayInputValue, weekdayFromDate, nextWeekStartInputValue, nextWeekEndInputValue } from './api'
+import { API, fetchJSON, todayInputValue, weekdayFromDate, nextWeekStartInputValue, nextWeekEndInputValue, getCachedJSON, setCachedJSON } from './api'
 import Header from './components/Header'
 import Alert from './components/Alert'
 import ProfileCard from './components/ProfileCard'
@@ -42,32 +42,61 @@ function MaleApp() {
     async function boot() {
       setLoading(true)
       try {
-        const [males, malePlaces, females, femalePlaces, ov] = await Promise.all([
-          fetchJSON(API.males),
-          fetchJSON(API.malePlaces),
-          fetchJSON(API.females),
-          fetchJSON(API.femalePlaces),
-          fetchJSON(API.overview),
+        // Use cache instantly if available
+        const cachedMales = getCachedJSON('males', 5 * 60 * 1000)
+        const cachedMalePlaces = getCachedJSON('malePlaces', 5 * 60 * 1000)
+        if (Array.isArray(cachedMales)) {
+          setPersons(cachedMales.filter(p => p.gender === 'MALE'))
+        }
+        if (Array.isArray(cachedMalePlaces)) {
+          setPlaces(cachedMalePlaces)
+        }
+
+        // 1) Load essential male data first (fast initial UI) and refresh cache
+        const [males, malePlaces] = await Promise.all([
+          fetchJSON(API.males).then(data => { setCachedJSON('males', data); return data }),
+          fetchJSON(API.malePlaces).then(data => { setCachedJSON('malePlaces', data); return data }),
         ])
-        setPersons(Array.isArray(males) ? males.filter(p => p.gender === 'MALE') : [])
+        const maleOnly = Array.isArray(males) ? males.filter(p => p.gender === 'MALE') : []
+        setPersons(maleOnly)
         setPlaces(Array.isArray(malePlaces) ? malePlaces : [])
-        const onlyFemales = Array.isArray(females) ? females.filter(p => p.gender === 'FEMALE') : []
-        const allPersons = [
-          ...(Array.isArray(males) ? males : []),
-          ...onlyFemales,
-        ]
-        const allPlaces = [
-          ...(Array.isArray(malePlaces) ? malePlaces : []),
-          ...(Array.isArray(femalePlaces) ? femalePlaces : []),
-        ]
-        setAllPersonsForHistory(allPersons)
-        setAllPlacesForHistory(allPlaces)
-        setOverview(Array.isArray(ov) ? ov : [])
       } catch (e) {
         showAlert('error', `Failed to load initial data: ${e.message}`)
       } finally {
         setLoading(false)
       }
+
+      // 2) Load non-critical data in background
+      ;(async () => {
+        try {
+          const [femalesRes, femalePlacesRes, ovRes, malesResBg] = await Promise.allSettled([
+            fetchJSON(API.females).then(data => { setCachedJSON('females', data); return data }),
+            fetchJSON(API.femalePlaces).then(data => { setCachedJSON('femalePlaces', data); return data }),
+            fetchJSON(API.overview).then(data => { setCachedJSON('overview', data); return data }),
+            fetchJSON(API.males).then(data => { setCachedJSON('males', data); return data }),
+          ])
+
+          const females = femalesRes.status === 'fulfilled' ? femalesRes.value : []
+          const femalePlaces = femalePlacesRes.status === 'fulfilled' ? femalePlacesRes.value : []
+          const ov = ovRes.status === 'fulfilled' ? ovRes.value : []
+          const malesAll = malesResBg.status === 'fulfilled' ? malesResBg.value : []
+
+          const onlyFemales = Array.isArray(females) ? females.filter(p => p.gender === 'FEMALE') : []
+          const allPersons = [
+            ...(Array.isArray(malesAll) ? malesAll : []),
+            ...onlyFemales,
+          ]
+          const allPlaces = [
+            ...((Array.isArray(places) ? places : [])),
+            ...(Array.isArray(femalePlaces) ? femalePlaces : []),
+          ]
+          setAllPersonsForHistory(allPersons)
+          setAllPlacesForHistory(allPlaces)
+          setOverview(Array.isArray(ov) ? ov : [])
+        } catch (_) {
+          // ignore background errors
+        }
+      })()
     }
     boot()
   }, [])
@@ -150,6 +179,7 @@ function MaleApp() {
             choosePlacePlaceholder="-- choose male place --"
             dateMin={nextWeekMin}
             dateMax={nextWeekMax}
+            buttonClass="bg-blue-600 hover:bg-blue-700"
           />
 
           <section className="md:col-span-2 space-y-4">

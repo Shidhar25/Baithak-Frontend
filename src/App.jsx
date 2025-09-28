@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
-import { API, fetchJSON, todayInputValue, weekdayFromDate, nextWeekStartInputValue, nextWeekEndInputValue } from './api'
+import { API, fetchJSON, todayInputValue, weekdayFromDate, nextWeekStartInputValue, nextWeekEndInputValue, getCachedJSON, setCachedJSON } from './api'
 import Header from './components/Header'
 import Alert from './components/Alert'
 import ProfileCard from './components/ProfileCard'
@@ -42,32 +42,61 @@ function App() {
     async function boot() {
       setLoading(true)
       try {
-        const [females, femalePlaces, males, malePlaces, ov] = await Promise.all([
-          fetchJSON(API.females),
-          fetchJSON(API.femalePlaces),
-          fetchJSON(API.males),
-          fetchJSON(API.malePlaces),
-          fetchJSON(API.overview),
+        // Use cache instantly if available
+        const cachedFemales = getCachedJSON('females', 5 * 60 * 1000) // 5 min TTL
+        const cachedFemalePlaces = getCachedJSON('femalePlaces', 5 * 60 * 1000)
+        if (Array.isArray(cachedFemales)) {
+          setPersons(cachedFemales.filter(p => p.gender === 'FEMALE'))
+        }
+        if (Array.isArray(cachedFemalePlaces)) {
+          setPlaces(cachedFemalePlaces)
+        }
+
+        // 1) Load essential data first (refresh cache in background but await for first paint)
+        const [females, femalePlaces] = await Promise.all([
+          fetchJSON(API.females).then(data => { setCachedJSON('females', data); return data }),
+          fetchJSON(API.femalePlaces).then(data => { setCachedJSON('femalePlaces', data); return data }),
         ])
-        setPersons(Array.isArray(females) ? females.filter(p => p.gender === 'FEMALE') : [])
+        const femaleOnly = Array.isArray(females) ? females.filter(p => p.gender === 'FEMALE') : []
+        setPersons(femaleOnly)
         setPlaces(Array.isArray(femalePlaces) ? femalePlaces : [])
-        const onlyMales = Array.isArray(males) ? males.filter(p => p.gender === 'MALE') : []
-        const allPersons = [
-          ...(Array.isArray(females) ? females : []),
-          ...onlyMales,
-        ]
-        const allPlaces = [
-          ...(Array.isArray(femalePlaces) ? femalePlaces : []),
-          ...(Array.isArray(malePlaces) ? malePlaces : []),
-        ]
-        setAllPersonsForHistory(allPersons)
-        setAllPlacesForHistory(allPlaces)
-        setOverview(Array.isArray(ov) ? ov.filter(p => p && p.timeSlot === 'EARLY_MORNING') : [])
       } catch (e) {
         showAlert('error', `Failed to load initial data: ${e.message}`)
       } finally {
         setLoading(false)
       }
+
+      // 2) Load non-critical data in background (does not block initial render)
+      ;(async () => {
+        try {
+          const [malesRes, malePlacesRes, ovRes, femalesResBg] = await Promise.allSettled([
+            fetchJSON(API.males).then(data => { setCachedJSON('males', data); return data }),
+            fetchJSON(API.malePlaces).then(data => { setCachedJSON('malePlaces', data); return data }),
+            fetchJSON(API.overview).then(data => { setCachedJSON('overview', data); return data }),
+            fetchJSON(API.females).then(data => { setCachedJSON('females', data); return data }),
+          ])
+
+          const males = malesRes.status === 'fulfilled' ? malesRes.value : []
+          const malePlaces = malePlacesRes.status === 'fulfilled' ? malePlacesRes.value : []
+          const ov = ovRes.status === 'fulfilled' ? ovRes.value : []
+          const femalesAll = femalesResBg.status === 'fulfilled' ? femalesResBg.value : []
+
+          const onlyMales = Array.isArray(males) ? males.filter(p => p.gender === 'MALE') : []
+          const allPersons = [
+            ...(Array.isArray(femalesAll) ? femalesAll : []),
+            ...onlyMales,
+          ]
+          const allPlaces = [
+            ...((Array.isArray(places) ? places : [])),
+            ...(Array.isArray(malePlaces) ? malePlaces : []),
+          ]
+          setAllPersonsForHistory(allPersons)
+          setAllPlacesForHistory(allPlaces)
+          setOverview(Array.isArray(ov) ? ov.filter(p => p && p.timeSlot === 'EARLY_MORNING') : [])
+        } catch (_) {
+          // ignore background errors; user can refresh later
+        }
+      })()
     }
     boot()
   }, [])
@@ -148,6 +177,7 @@ function App() {
             derivedDayLabel={derivedDayLabel}
             dateMin={nextWeekMin}
             dateMax={nextWeekMax}
+            buttonClass="bg-pink-600 hover:bg-pink-700"
           />
 
           <section className="md:col-span-2 space-y-4">
