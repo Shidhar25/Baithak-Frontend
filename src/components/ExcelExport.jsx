@@ -278,46 +278,75 @@ export default function ExcelExport() {
 
       {/* Per-person history tables */}
       <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-3">व्यक्तीनिहाय इतिहास</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {personTables.map((table, idx) => (
-            <div key={idx} className="border border-black p-2">
-              <h1 className="text-center font-bold text-lg">॥ श्री राम समर्थ ॥</h1>
-              <h2 className="text-center font-semibold text-md mb-2">॥ जय जय रघुवीर समर्थ ॥</h2>
-              <p className="text-center mb-2">{`श्री सदस्याचे नाव - ${table.name}`}</p>
+  <h3 className="text-lg font-semibold mb-3">व्यक्तीनिहाय इतिहास</h3>
 
-              <table className="border border-black border-collapse w-full text-center">
-                <thead>
-                  <tr>
-                    {['दिनांक', 'वार', 'स्त्री/पुरुष', 'श्री बैठकीचे ठिकाण', 'वेळ'].map((heading, i) => (
-                      <th key={i} className="border border-black px-2 py-1 font-medium">{heading}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {table.rows.map((r, i) => (
-                    <tr key={i}>
-                      <td className="border border-black px-2 py-1">{r.date}</td>
-                      <td className="border border-black px-2 py-1">{r.weekday}</td>
-                      <td className="border border-black px-2 py-1">{r.gender}</td>
-                      <td className="border border-black px-2 py-1">{r.place}</td>
-                      <td className="border border-black px-2 py-1">{r.timeSlot}</td>
-                    </tr>
-                  ))}
-                  {table.rows.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="border border-black px-2 py-1 text-gray-500 italic">—</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ))}
-          {personTables.length === 0 && (
-            <div className="text-gray-500 italic">No entries found for the selected range.</div>
-          )}
+  {/* 2x2 Grid just like Excel screenshot */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+    {personTables.map((table, idx) => (
+      <div
+        key={idx}
+        className="border border-black rounded p-3 flex flex-col justify-between"
+      >
+        {/* Header */}
+        <div>
+          <h1 className="text-center font-bold text-lg mb-1">॥ श्री राम समर्थ ॥</h1>
+          <h2 className="text-center font-semibold text-md mb-1">
+            ॥ जय जय रघुवीर समर्थ ॥
+          </h2>
+          <p className="text-center font-medium mb-3">
+            {`श्री सदस्याचे नाव - ${table.name}`}
+          </p>
         </div>
+
+        {/* Table */}
+        <table className="border border-black border-collapse w-full text-center text-sm">
+          <thead>
+            <tr className="bg-gray-100">
+              {['दिनांक', 'वार', 'स्त्री/पुरुष', 'श्री बैठकीचे ठिकाण', 'वेळ'].map(
+                (heading, i) => (
+                  <th
+                    key={i}
+                    className="border border-black px-2 py-1 font-semibold"
+                  >
+                    {heading}
+                  </th>
+                )
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {table.rows.map((r, i) => (
+              <tr key={i}>
+                <td className="border border-black px-2 py-1">{r.date}</td>
+                <td className="border border-black px-2 py-1">{r.weekday}</td>
+                <td className="border border-black px-2 py-1">{r.gender}</td>
+                <td className="border border-black px-2 py-1">{r.place}</td>
+                <td className="border border-black px-2 py-1">{r.timeSlot}</td>
+              </tr>
+            ))}
+            {table.rows.length === 0 && (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="border border-black px-2 py-1 text-gray-500 italic"
+                >
+                  —
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
+    ))}
+
+    {/* If no data */}
+    {personTables.length === 0 && (
+      <div className="text-gray-500 italic col-span-2 text-center">
+        No entries found for the selected range.
+      </div>
+    )}
+  </div>
+</div>
     </div>
   );
 }
