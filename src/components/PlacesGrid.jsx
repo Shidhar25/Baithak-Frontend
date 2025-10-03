@@ -1,5 +1,5 @@
 import { formatIsoDate } from '../api';
-import { isInputDateInCurrentWeek, isInputDateInEditableWindow } from '../api';
+// import { isInputDateInCurrentWeek, isInputDateInEditableWindow } from '../api';
 
 export default function PlacesGrid({ overview, persons = [], dateMin, dateMax, onEditDate, onEditPerson }) {
   const items = Array.isArray(overview) ? overview : [];

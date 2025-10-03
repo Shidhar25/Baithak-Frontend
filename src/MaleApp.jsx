@@ -38,6 +38,71 @@ function MaleApp() {
     ;(showAlert)._t = window.setTimeout(() => setAlert({ type: 'info', message: '' }), 3500)
   }
 
+  async function refreshOverview(showLoading = true) {
+    if (showLoading) {
+      setIsRefreshingOverview(true)
+    }
+    try {
+      // First, try to get cached data immediately
+      const cachedOverview = getCachedJSON('overview', 5 * 60 * 1000); // 5 min cache
+      
+      // Comprehensive logging for cached overview
+      console.group('Male App - Cached Overview');
+      console.log('Cached Overview:', cachedOverview);
+      console.log('Cached Overview Type:', typeof cachedOverview);
+      console.log('Is Array:', Array.isArray(cachedOverview));
+      if (Array.isArray(cachedOverview)) {
+        console.log('Cached Overview Length:', cachedOverview.length);
+        console.log('First Few Cached Overview Items:', cachedOverview.slice(0, 5));
+        
+        // Log unique time slots in cached overview
+        const uniqueTimeSlots = [...new Set(cachedOverview.map(p => p?.timeSlot))];
+        console.log('Unique Time Slots in Cached Overview:', uniqueTimeSlots);
+      }
+      console.groupEnd();
+
+      // Set cached overview if available
+      if (cachedOverview) {
+        setOverview(Array.isArray(cachedOverview) ? cachedOverview : [])
+      }
+
+      // Fetch fresh data in background
+      const ov = await fetchJSON(API.overview)
+      
+      // Comprehensive logging for fetched overview
+      console.group('Male App - Fetched Overview');
+      console.log('Fetched Overview:', ov);
+      console.log('Fetched Overview Type:', typeof ov);
+      console.log('Is Array:', Array.isArray(ov));
+      if (Array.isArray(ov)) {
+        console.log('Fetched Overview Length:', ov.length);
+        console.log('First Few Fetched Overview Items:', ov.slice(0, 5));
+        
+        // Log unique time slots in fetched overview
+        const uniqueTimeSlots = [...new Set(ov.map(p => p?.timeSlot))];
+        console.log('Unique Time Slots in Fetched Overview:', uniqueTimeSlots);
+      }
+      console.groupEnd();
+      
+      if (Array.isArray(ov)) {
+        // Update cache
+        setCachedJSON('overview', ov)
+        
+        // Update state
+        setOverview(ov)
+      }
+      
+      setLastOverviewUpdate(Date.now())
+    } catch (e) {
+      console.error('Overview Refresh Error:', e)
+      showAlert('error', `Failed to refresh overview: ${e.message}`)
+    } finally {
+      if (showLoading) {
+        setIsRefreshingOverview(false)
+      }
+    }
+  }
+
   useEffect(() => {
     async function boot() {
       setLoading(true)
@@ -45,9 +110,11 @@ function MaleApp() {
         // Use cache instantly if available
         const cachedMales = getCachedJSON('males', 5 * 60 * 1000)
         const cachedMalePlaces = getCachedJSON('malePlaces', 5 * 60 * 1000)
+        
         if (Array.isArray(cachedMales)) {
           setPersons(cachedMales.filter(p => p.gender === 'MALE'))
         }
+        
         if (Array.isArray(cachedMalePlaces)) {
           setPlaces(cachedMalePlaces)
         }
@@ -57,7 +124,9 @@ function MaleApp() {
           fetchJSON(API.males).then(data => { setCachedJSON('males', data); return data }),
           fetchJSON(API.malePlaces).then(data => { setCachedJSON('malePlaces', data); return data }),
         ])
+        
         const maleOnly = Array.isArray(males) ? males.filter(p => p.gender === 'MALE') : []
+        
         setPersons(maleOnly)
         setPlaces(Array.isArray(malePlaces) ? malePlaces : [])
       } catch (e) {
@@ -72,7 +141,11 @@ function MaleApp() {
           const [femalesRes, femalePlacesRes, ovRes, malesResBg] = await Promise.allSettled([
             fetchJSON(API.females).then(data => { setCachedJSON('females', data); return data }),
             fetchJSON(API.femalePlaces).then(data => { setCachedJSON('femalePlaces', data); return data }),
-            fetchJSON(API.overview).then(data => { setCachedJSON('overview', data); return data }),
+            fetchJSON(API.overview).then(data => { 
+              console.log('Background Overview Fetch:', data);
+              setCachedJSON('overview', data); 
+              return data 
+            }),
             fetchJSON(API.males).then(data => { setCachedJSON('males', data); return data }),
           ])
 
@@ -90,6 +163,18 @@ function MaleApp() {
             ...((Array.isArray(places) ? places : [])),
             ...(Array.isArray(femalePlaces) ? femalePlaces : []),
           ]
+          
+          // Log overview data before setting
+          console.group('Male App - Background Overview');
+          console.log('Overview Data:', ov);
+          console.log('Overview Type:', typeof ov);
+          console.log('Is Array:', Array.isArray(ov));
+          if (Array.isArray(ov)) {
+            console.log('Overview Length:', ov.length);
+            console.log('First Few Overview Items:', ov.slice(0, 5));
+          }
+          console.groupEnd();
+
           setAllPersonsForHistory(allPersons)
           setAllPlacesForHistory(allPlaces)
           setOverview(Array.isArray(ov) ? ov : [])
@@ -139,8 +224,14 @@ function MaleApp() {
     }
 
     const chosenDay = weekdayFromDate(dateValue)
-    if ((historyRows || []).some(h => h.meetingDay === chosenDay)) {
-      showAlert('error', `Already has a meeting on ${chosenDay}.`)
+    // Check if there's already an assignment on the same day AND date
+    const conflictingAssignment = (historyRows || []).find(h =>
+      h.meetingDay === chosenDay &&
+      h.meetingDate === dateValue
+    );
+
+    if (conflictingAssignment) {
+      showAlert('error', `Already has a meeting on ${chosenDay} (${dateValue}).`)
       return
     }
 

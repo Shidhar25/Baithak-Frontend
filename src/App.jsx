@@ -45,9 +45,12 @@ function App() {
         // Use cache instantly if available
         const cachedFemales = getCachedJSON('females', 5 * 60 * 1000) // 5 min TTL
         const cachedFemalePlaces = getCachedJSON('femalePlaces', 5 * 60 * 1000)
+        
         if (Array.isArray(cachedFemales)) {
           setPersons(cachedFemales.filter(p => p.gender === 'FEMALE'))
         }
+        
+        // Only use female places for females
         if (Array.isArray(cachedFemalePlaces)) {
           setPlaces(cachedFemalePlaces)
         }
@@ -57,7 +60,9 @@ function App() {
           fetchJSON(API.females).then(data => { setCachedJSON('females', data); return data }),
           fetchJSON(API.femalePlaces).then(data => { setCachedJSON('femalePlaces', data); return data }),
         ])
+        
         const femaleOnly = Array.isArray(females) ? females.filter(p => p.gender === 'FEMALE') : []
+        
         setPersons(femaleOnly)
         setPlaces(Array.isArray(femalePlaces) ? femalePlaces : [])
       } catch (e) {
@@ -86,12 +91,8 @@ function App() {
             ...(Array.isArray(femalesAll) ? femalesAll : []),
             ...onlyMales,
           ]
-          const allPlaces = [
-            ...((Array.isArray(places) ? places : [])),
-            ...(Array.isArray(malePlaces) ? malePlaces : []),
-          ]
+          
           setAllPersonsForHistory(allPersons)
-          setAllPlacesForHistory(allPlaces)
           setOverview(Array.isArray(ov) ? ov.filter(p => p && p.timeSlot === 'EARLY_MORNING') : [])
         } catch (_) {
           // ignore background errors; user can refresh later
@@ -139,8 +140,14 @@ function App() {
     }
 
     const chosenDay = weekdayFromDate(dateValue)
-    if ((historyRows || []).some(h => h.meetingDay === chosenDay)) {
-      showAlert('error', `Already has a meeting on ${chosenDay}.`)
+    // Check if there's already an assignment on the same day AND date
+    const conflictingAssignment = (historyRows || []).find(h =>
+      h.meetingDay === chosenDay &&
+      h.meetingDate === dateValue
+    );
+
+    if (conflictingAssignment) {
+      showAlert('error', `Already has a meeting on ${chosenDay} (${dateValue}).`)
       return
     }
 
@@ -150,7 +157,7 @@ function App() {
       setPlaceValue('')
       await loadHistory(selectedPerson.personId)
       const ov = await fetchJSON(API.overview)
-      setOverview(Array.isArray(ov) ? ov.filter(p => p && p.timeSlot === 'EARLY_MORNING') : [])
+      setOverview(Array.isArray(ov) ? ov.filter(p => p && p.timeSlot === 'स ७:४५ ते १०:३०') : [])
     } catch (e) {
       showAlert('error', `Failed to save assignment: ${e.message}`)
     }

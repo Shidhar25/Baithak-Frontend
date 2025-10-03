@@ -328,10 +328,10 @@ export default function AdvancedHistory({ persons, places }) {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">All Time Slots</option>
-                <option value="EARLY_MORNING">Early Morning</option>
-                <option value="MORNING">Morning</option>
-                <option value="AFTERNOON">Afternoon</option>
-                <option value="EVENING">Evening</option>
+                <option value="स ७:४५ ते १०:३०">स ७:४५ ते १०:३०</option>
+                <option value="सकाळ">सकाळ</option>
+                <option value="दुपार">दुपार</option>
+                <option value="रात्री ७:४५ ते १०:३०">रात्री ७:४५ ते १०:३०</option>
               </select>
             </div>
           </div>
